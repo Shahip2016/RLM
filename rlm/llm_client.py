@@ -21,6 +21,12 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
 from .config import RLMConfig
 
 
@@ -40,6 +46,8 @@ class TokenUsage:
         "claude-3-5-sonnet": {"input": 3.00, "output": 15.00},
         "claude-3-opus": {"input": 15.00, "output": 75.00},
         "claude-3-haiku": {"input": 0.25, "output": 1.25},
+        "gemini-1.5-pro": {"input": 3.50, "output": 10.50},
+        "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
     }
     
     def add(self, prompt: int, completion: int):
@@ -88,6 +96,10 @@ class LLMClient:
         self.anthropic_client = None
         if ANTHROPIC_AVAILABLE and hasattr(self.config, 'anthropic_api_key') and self.config.anthropic_api_key:
             self.anthropic_client = anthropic.Anthropic(api_key=self.config.anthropic_api_key)
+        
+        # Gemini setup
+        if GEMINI_AVAILABLE and hasattr(self.config, 'gemini_api_key') and self.config.gemini_api_key:
+            genai.configure(api_key=self.config.gemini_api_key)
         
         # Token tracking per model
         self.usage: Dict[str, TokenUsage] = {}
@@ -177,6 +189,39 @@ class LLMClient:
                 if hasattr(block, 'text'):
                     content += block.text
             return content
+
+        # Handle Gemini models
+        if "gemini" in model.lower():
+            if not GEMINI_AVAILABLE:
+                raise ValueError(f"Gemini support not available. Install google-generativeai for model {model}")
+            
+            gemini_model = genai.GenerativeModel(model)
+            
+            # Format history for Gemini
+            gemini_history = []
+            for m in messages[:-1]:
+                role = "user" if m["role"] in ["user", "system"] else "model"
+                gemini_history.append({"role": role, "parts": [m["content"]]})
+            
+            chat = gemini_model.start_chat(history=gemini_history)
+            response = chat.send_message(
+                messages[-1]["content"],
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=temperature,
+                )
+            )
+            
+            # Track usage (Gemini usage info is in response.usage_metadata)
+            if hasattr(response, 'usage_metadata'):
+                if model not in self.usage:
+                    self.usage[model] = TokenUsage()
+                self.usage[model].add(
+                    response.usage_metadata.prompt_token_count,
+                    response.usage_metadata.candidates_token_count
+                )
+            
+            return response.text
 
         # Make API call (OpenAI)
         response = self.client.chat.completions.create(
