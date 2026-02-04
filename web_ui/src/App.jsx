@@ -8,7 +8,9 @@ const API_BASE = "http://localhost:8000";
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [context, setContext] = useState("");
+  const [contexts, setContexts] = useState([]); // Changed to list
+  const [urlInput, setUrlInput] = useState("");
+  const [isScraping, setIsScraping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isQuerying, setIsQuerying] = useState(false);
   const [activeTrajectory, setActiveTrajectory] = useState(null);
@@ -61,10 +63,12 @@ function App() {
     setInput("");
     setIsQuerying(true);
 
+    const fullContext = contexts.map(c => c.content).join("\n\n---\n\n");
+
     try {
       const resp = await axios.post(`${API_BASE}/query`, {
         query: input,
-        context: context,
+        context: fullContext,
         config: config
       });
 
@@ -109,15 +113,52 @@ function App() {
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-primary-500/50 hover:bg-white/5 transition-all">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <Upload className="w-8 h-8 mb-3 text-slate-400" />
-                <p className="text-xs text-slate-400">Upload context file</p>
+                <p className="text-xs text-slate-400 text-center">Drag files here or click to browse</p>
               </div>
-              <input type="file" className="hidden" onChange={handleFileUpload} />
+              <input type="file" className="hidden" multiple onChange={handleFileUpload} />
             </label>
-            {context && (
-              <div className="mt-4 p-3 bg-white/5 rounded-lg text-xs font-mono text-slate-400 truncate">
-                Context: {context.substring(0, 100)}...
-              </div>
-            )}
+
+            <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
+              {contexts.map((ctx, i) => (
+                <div key={i} className="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/5 group">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-1 h-1 rounded-full bg-primary-500" />
+                    <span className="text-[10px] font-medium truncate text-slate-300">{ctx.name}</span>
+                  </div>
+                  <button
+                    onClick={() => setContexts(prev => prev.filter((_, idx) => idx !== i))}
+                    className="text-slate-600 hover:text-red-400 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* URL Input */}
+          <div className="glass-card !p-4">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-slate-200">
+              <Terminal className="w-4 h-4 text-emerald-400" /> Remote URL
+            </h3>
+            <div className="relative">
+              <input
+                className="w-full bg-slate-800 border border-white/5 rounded-lg text-[11px] py-2 px-3 focus:ring-1 focus:ring-primary-500 pr-10"
+                placeholder="https://example.com/context"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+              />
+              <button
+                className="absolute right-2 top-1.5 text-slate-500 hover:text-white"
+                onClick={() => {
+                  if (!urlInput) return;
+                  setContexts(prev => [...prev, { name: urlInput, content: `Content from ${urlInput} (Simulated)` }]);
+                  setUrlInput("");
+                }}
+              >
+                <PlusIcon className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Model Config */}
@@ -181,10 +222,10 @@ function App() {
                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`max-w-[85%] rounded-2xl p-5 ${m.role === 'user'
-                    ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/20'
-                    : m.type === 'info'
-                      ? 'bg-white/5 border border-white/10 text-slate-400 text-sm italic'
-                      : 'glass shadow-xl'
+                  ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/20'
+                  : m.type === 'info'
+                    ? 'bg-white/5 border border-white/10 text-slate-400 text-sm italic'
+                    : 'glass shadow-xl'
                   }`}>
                   <div className="flex items-start gap-4">
                     {m.role === 'assistant' && (
