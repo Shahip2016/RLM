@@ -14,6 +14,7 @@ class RLMConfig:
     
     # API Configuration
     api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
     base_url: Optional[str] = None
     
     # Model Configuration
@@ -40,6 +41,9 @@ class RLMConfig:
         
         if self.api_key is None:
             self.api_key = os.getenv("OPENAI_API_KEY")
+        
+        if self.anthropic_api_key is None:
+            self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         
         if self.base_url is None:
             self.base_url = os.getenv("OPENAI_BASE_URL")

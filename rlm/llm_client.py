@@ -15,6 +15,11 @@ except ImportError:
     TIKTOKEN_AVAILABLE = False
 
 from openai import OpenAI
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
 
 from .config import RLMConfig
 
@@ -32,6 +37,9 @@ class TokenUsage:
         "gpt-4o-mini": {"input": 0.15, "output": 0.60},
         "gpt-4-turbo": {"input": 10.00, "output": 30.00},
         "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
+        "claude-3-5-sonnet": {"input": 3.00, "output": 15.00},
+        "claude-3-opus": {"input": 15.00, "output": 75.00},
+        "claude-3-haiku": {"input": 0.25, "output": 1.25},
     }
     
     def add(self, prompt: int, completion: int):
@@ -75,6 +83,11 @@ class LLMClient:
             api_key=self.config.api_key,
             base_url=self.config.base_url
         )
+        
+        # Anthropic client
+        self.anthropic_client = None
+        if ANTHROPIC_AVAILABLE and hasattr(self.config, 'anthropic_api_key') and self.config.anthropic_api_key:
+            self.anthropic_client = anthropic.Anthropic(api_key=self.config.anthropic_api_key)
         
         # Token tracking per model
         self.usage: Dict[str, TokenUsage] = {}
@@ -127,7 +140,45 @@ class LLMClient:
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": prompt})
         
-        # Make API call
+        # Handle Anthropic models
+        if "claude" in model.lower():
+            if not self.anthropic_client:
+                raise ValueError(f"Anthropic client not initialized. Check ANTHROPIC_API_KEY for model {model}")
+            
+            # Convert messages to Anthropic format
+            anth_system = ""
+            anth_messages = []
+            for m in messages:
+                if m["role"] == "system":
+                    anth_system = m["content"]
+                else:
+                    anth_messages.append({"role": m["role"], "content": m["content"]})
+            
+            response = self.anthropic_client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=anth_system,
+                messages=anth_messages
+            )
+            
+            # Track usage
+            if response.usage:
+                if model not in self.usage:
+                    self.usage[model] = TokenUsage()
+                self.usage[model].add(
+                    response.usage.input_tokens,
+                    response.usage.output_tokens
+                )
+            
+            # Concatenate response content
+            content = ""
+            for block in response.content:
+                if hasattr(block, 'text'):
+                    content += block.text
+            return content
+
+        # Make API call (OpenAI)
         response = self.client.chat.completions.create(
             model=model,
             messages=messages,
