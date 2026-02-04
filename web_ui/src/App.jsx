@@ -29,6 +29,12 @@ function App() {
   const [isQuerying, setIsQuerying] = useState(false);
   const [activeTrajectory, setActiveTrajectory] = useState(null);
   const [trajIndex, setTrajIndex] = useState(0);
+  const [showApiModal, setShowApiModal] = useState(false);
+  const [apiKeys, setApiKeys] = useState({
+    openai: "",
+    anthropic: "",
+    google: ""
+  });
 
   const [config, setConfig] = useState({
     root_model: "gpt-4o",
@@ -94,7 +100,12 @@ function App() {
       const resp = await axios.post(`${API_BASE}/query`, {
         query: input,
         context: fullContext,
-        config: config
+        config: {
+          ...config,
+          api_key: apiKeys.openai || undefined,
+          anthropic_api_key: apiKeys.anthropic || undefined,
+          gemini_api_key: apiKeys.google || undefined
+        }
       });
 
       const assistantMessage = {
@@ -127,7 +138,15 @@ function App() {
           <div className="p-2.5 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl shadow-lg shadow-primary-500/20">
             <Brain className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-lg font-bold tracking-tight text-white">RLM <span className="text-primary-400 font-medium">Studio</span></h1>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold tracking-tight text-white">RLM <span className="text-primary-400 font-medium">Studio</span></h1>
+          </div>
+          <button
+            onClick={() => setShowApiModal(true)}
+            className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-primary-400 transition-all"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="space-y-6 flex-1 overflow-y-auto scrollbar-hide">
@@ -272,10 +291,10 @@ function App() {
                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start hover-trigger'}`}
               >
                 <div className={`group relative max-w-[85%] rounded-3xl transition-all ${m.role === 'user'
-                    ? 'bg-gradient-to-br from-primary-600 to-primary-700 p-5 pr-6 text-white shadow-2xl shadow-primary-500/20'
-                    : m.type === 'info'
-                      ? 'bg-white/[0.02] border border-white/[0.05] p-3 px-4 text-slate-500 text-[11px] font-medium'
-                      : 'bg-white/[0.03] border border-white/[0.05] p-6 shadow-xl backdrop-blur-sm'
+                  ? 'bg-gradient-to-br from-primary-600 to-primary-700 p-5 pr-6 text-white shadow-2xl shadow-primary-500/20'
+                  : m.type === 'info'
+                    ? 'bg-white/[0.02] border border-white/[0.05] p-3 px-4 text-slate-500 text-[11px] font-medium'
+                    : 'bg-white/[0.03] border border-white/[0.05] p-6 shadow-xl backdrop-blur-sm'
                   }`}>
                   <div className="flex items-start gap-4">
                     {m.role === 'assistant' && (

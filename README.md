@@ -1,140 +1,56 @@
-# RLM - Recursive Language Models
+# RLM (Recursive Language Model)
 
-A Python implementation of the Recursive Language Models (RLM) framework from the paper "Recursive Language Models" by Zhang, Kraska, and Khattab (MIT CSAIL).
-
-## Overview
+A implementation of **Recursive Language Models** (RLM) with a modern Web UI and support for proprietary models (OpenAI, Anthropic, Gemini).
 
 RLM enables LLMs to process **arbitrarily long prompts** by treating them as part of an external environment rather than feeding them directly into the model. The key insight is that long contexts should be symbolically manipulated through code execution and recursive sub-calls.
 
-### Key Features
+## 🚀 Features
 
-- 🔄 **Recursive sub-calls**: LLMs can invoke themselves on portions of the context
-- 💻 **Python REPL**: Context is loaded as a variable that can be programmatically examined
-- 📊 **Cost tracking**: Automatic token counting and cost estimation
-- 🎯 **Task-agnostic**: Works across different types of long-context tasks
+- **Modern Web UI**: Built with React, Vite, Tailwind CSS, and Framer Motion.
+- **Recursive Reasoning**: Automated iterative REPL loop for deep context analysis.
+- **Multi-Model Support**: Integrated with OpenAI, Anthropic (Claude-3.5), and Google (Gemini-1.5).
+- **Trajectory Visualizer**: Inspect the step-by-step reasoning process and internal REPL states.
+- **Context Reservoir**: Support for multiple file uploads and remote URL context.
+- **Cost Tracking**: Automatic token counting and cost estimation across all providers.
 
-## Installation
+## 🛠️ Installation & Setup
 
+### 1. Requirements
+Ensure you have Python 3.9+ and Node.js 18+ installed.
+
+### 2. Backend Setup
 ```bash
+# Install Python dependencies
 pip install -r requirements.txt
+pip install fastapi uvicorn anthropic google-generativeai
+
+# Start the FastAPI service
+python main.py
 ```
 
-## Configuration
-
-1. Copy `.env.example` to `.env`:
-   ```bash
-   copy .env.example .env
-   ```
-
-2. Add your OpenAI API key to `.env`:
-   ```
-   OPENAI_API_KEY=sk-your-api-key-here
-   ```
-
-## Quick Start
-
-```python
-from rlm import RLM
-
-# Initialize RLM
-rlm = RLM()
-
-# Your long document
-document = "..." # Very long text
-
-# Query
-result = rlm.query(
-    query="What is the main theme of this document?",
-    context=document
-)
-
-print(result.answer)
-print(result.usage_summary)
-```
-
-## How It Works
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         RLM Flow                            │
-├─────────────────────────────────────────────────────────────┤
-│  1. User provides query + context                           │
-│  2. Context loaded into REPL as 'context' variable          │
-│  3. LLM writes code to examine/chunk context                │
-│  4. LLM uses llm_query() for recursive sub-calls            │
-│  5. Process repeats until FINAL() answer                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-The LLM can write code like:
-
-```python
-# Chunk and analyze
-for i, chunk in enumerate(chunks):
-    answer = llm_query(f"Analyze chunk {i}: {chunk}")
-    buffers.append(answer)
-
-# Aggregate
-final = llm_query(f"Combine findings: {buffers}")
-```
-
-## Examples
-
-### Simple Example
+### 3. Frontend Setup
 ```bash
-python examples/simple_example.py
+cd web_ui
+npm install
+npm run dev
 ```
 
-### Needle-in-a-Haystack
-```bash
-python examples/niah_example.py
-```
+## 📖 Usage
 
-## Configuration Options
+1. Open `http://localhost:5173` in your browser.
+2. **Context**: Upload documents (PDF/Text) or add URLs to the Reservoir.
+3. **Settings**: Enter your API keys (optional if set in `.env`) and select models.
+4. **Query**: Ask a question. Watch RLM brainstorm and execute recursive calls.
+5. **Inspect**: Click "Inspect Reasoning" to see the full trajectory and code executed.
 
-```python
-from rlm import RLM, RLMConfig
+## 🏗️ Project Structure
 
-config = RLMConfig(
-    root_model="gpt-4o",        # Model for root LM
-    sub_model="gpt-4o-mini",    # Model for sub-calls
-    max_iterations=50,          # Max REPL iterations
-    max_output_tokens=16384,    # Max tokens per response
-    model_variant="gpt"         # "gpt" or "qwen"
-)
+- `rlm/`: Core RLM logic and provider integrations.
+  - `llm_client.py`: Multi-provider client (OpenAI, Anthropic, Gemini).
+  - `rlm.py`: Main recursive orchestrator.
+- `main.py`: FastAPI backend service.
+- `web_ui/`: Modern React dashboard.
+- `examples/`: Legacy Python examples.
 
-rlm = RLM(config=config)
-```
-
-## Project Structure
-
-```
-rlm/
-├── __init__.py          # Package exports
-├── config.py            # Configuration management
-├── llm_client.py        # OpenAI API wrapper
-├── prompts.py           # System prompts from paper
-├── repl_environment.py  # Python REPL environment
-└── rlm.py               # Main orchestrator
-
-examples/
-├── simple_example.py    # Basic usage
-└── niah_example.py      # Needle-in-a-haystack
-```
-
-## Citation
-
-This implementation is based on:
-
-```
-@article{zhang2025rlm,
-  title={Recursive Language Models},
-  author={Zhang, Alex L. and Kraska, Tim and Khattab, Omar},
-  journal={arXiv preprint arXiv:2512.24601},
-  year={2025}
-}
-```
-
-## License
-
+## 📜 License
 MIT License
