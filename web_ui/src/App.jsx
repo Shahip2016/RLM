@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Upload, Settings, ChevronRight, Terminal, PieChart, Layers, Brain, Loader2 } from 'lucide-react';
+import { Send, Upload, Settings, ChevronRight, Terminal, PieChart, Layers, Brain, Loader2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
