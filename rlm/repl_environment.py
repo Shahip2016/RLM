@@ -38,7 +38,8 @@ class REPLEnvironment:
         self,
         context: Any,
         llm_query_fn: Callable[[str], str],
-        max_output_length: int = 5000
+        max_output_length: int = 5000,
+        additional_globals: Optional[Dict[str, Any]] = None
     ):
         """
         Initialize the REPL environment.
@@ -47,6 +48,7 @@ class REPLEnvironment:
             context: The input context (string or list of strings)
             llm_query_fn: Function to call for recursive LLM queries
             max_output_length: Max characters to return from output
+            additional_globals: Additional variables or tools to inject
         """
         self.max_output_length = max_output_length
         self._output_buffer: List[str] = []
@@ -59,6 +61,10 @@ class REPLEnvironment:
             'llm_query': self._wrapped_llm_query,
             'print': self._capture_print,
         }
+        
+        # Inject additional globals if provided
+        if additional_globals:
+            self.globals.update(additional_globals)
         
         # Import common modules
         self._setup_imports()

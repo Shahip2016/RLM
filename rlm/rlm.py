@@ -71,7 +71,9 @@ class RLM:
         self,
         query: str,
         context: Union[str, List[str]],
-        verbose: bool = False
+        verbose: bool = False,
+        tools: Optional[Dict[str, Any]] = None,
+        extra_globals: Optional[Dict[str, Any]] = None
     ) -> RLMResult:
         """
         Process a query with the given context using RLM.
@@ -80,6 +82,8 @@ class RLM:
             query: The question or task to answer
             context: The context data (string or list of strings)
             verbose: Whether to print progress information
+            tools: Additional tool functions to inject into the REPL
+            extra_globals: Additional variables to inject into the REPL
             
         Returns:
             RLMResult with the answer and metadata
@@ -99,11 +103,19 @@ class RLM:
             allow_subcalls=self.allow_subcalls
         )
         
+        # Prepare additional globals for the REPL
+        additional_globals = {}
+        if tools:
+            additional_globals.update(tools)
+        if extra_globals:
+            additional_globals.update(extra_globals)
+            
         # Create the REPL environment
         repl = REPLEnvironment(
             context=context,
             llm_query_fn=self._create_sub_query_fn(),
-            max_output_length=self.config.max_context_display
+            max_output_length=self.config.max_context_display,
+            additional_globals=additional_globals
         )
         
         # Build initial message history
